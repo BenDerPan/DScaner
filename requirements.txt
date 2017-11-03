@@ -1,2 +1,4 @@
 celery
 celery[redis]
+sqlalchemy
+requests[security]
