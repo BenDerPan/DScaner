@@ -207,24 +207,6 @@ class AwvsApiV11:
             print('[!]配置并运行AWVS url={0}扫描任务失败：{1}'.format(url, e))
             return None
 
-    def test(self,):
-        '''
-        Method:GET
-URL: /api/v1/vulnerabilities?q=severity:{int};criticality:{int};status:{string};cvss_score:{logic expression
-};cvss_score:{logic expression
-};target_id:{target_id};group_id:{group_id}
-        :return:
-        '''
-        # 获取scan_id的扫描状况
-        try:
-            response = requests.get("{0}/{1}".format(self.__api_base_url+"/api/v1/vulnerabilities", "3aa4e413-e324-4e0f-ae7d-2d8071c5fdb0"), headers=self.auth_headers,
-                                    timeout=self.__request_timeout, verify=False)
-            result = response.json()
-            status = result['current_session']['status']
-            return status
-        except Exception as e:
-            print('[!]获取AWVS scan_id={0}的扫描状况失败：{1}'.format(scan_id, e))
-            return None
 
 
 if __name__ == '__main__':
