@@ -2,3 +2,4 @@ celery
 celery[redis]
 sqlalchemy
 requests[security]
+psycopg2
