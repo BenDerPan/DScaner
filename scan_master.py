@@ -1,5 +1,6 @@
 from scan_worker import scan
 import time
+import json
 from storage.storage_manager import StorageManager
 from push import RestApiPusher
 from config import *
@@ -29,6 +30,7 @@ while True:
         for i in range(len(results) - 1, -1, -1):
             if results[i].ready():
                 r = results[i].get()
+                r=json.loads(r)
                 print(r)
                 try:
                     vulnTask = VulnTask(r['target'],r['target_id'], r)
