@@ -1,0 +1,1 @@
+celery -A scan_worker worker  --loglevel=info
