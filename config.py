@@ -20,3 +20,4 @@ STORAGE_BACKEND = "sqlite:///awvs.db"
 
 #推送漏洞数据API接口
 VULN_PUSH_API_URL="http://localhost/api/vulns"
+ENABLE_VULN_PUSH=False
