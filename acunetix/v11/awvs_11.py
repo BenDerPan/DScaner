@@ -1,6 +1,7 @@
 import requests
 import requests.packages.urllib3
 import json
+import datetime
 
 # 禁用https证书相关警告
 requests.packages.urllib3.disable_warnings()
@@ -55,7 +56,7 @@ class AwvsApiV11:
             print('[!]添加扫描目标到AWVS失败：{}'.format(e))
             return None
 
-    def start_scan(self,url,profile_id=PROFILE_ID_FULL_SCAN):
+    def start_scan_by_url(self,url,profile_id=PROFILE_ID_FULL_SCAN):
         # 先获取全部的任务.避免重复
         # 添加任务获取target_id
         # 开始扫描
@@ -76,6 +77,18 @@ class AwvsApiV11:
                 print('[!]开始AWVS url={0}的扫描任务失败：{1}'.format(url, e))
                 return None
 
+    def start_scan_by_target_id(self,target_id,profile_id=PROFILE_ID_FULL_SCAN):
+        data = {"target_id": target_id, "profile_id": profile_id,
+                "schedule": {"disable": False, "start_date": None, "time_sensitive": False}}
+        try:
+            response = requests.post(self.scans_api_url, data=json.dumps(data), headers=self.auth_headers, timeout=self.__request_timeout,
+                                     verify=False)
+            result = response.json()
+            return result['target_id']
+        except Exception as e:
+            print('[!]开始AWVS target_id={0}的扫描任务失败：{1}'.format(target_id, e))
+            return None
+
     def get_all_scan(self):
         try:
             response = requests.get(self.scans_api_url, headers=self.auth_headers, timeout=self.__request_timeout, verify=False)
@@ -85,14 +98,34 @@ class AwvsApiV11:
             print('[!]获取所有AWVS扫描目标失败：{}'.format(e))
             return None
 
-    def get_running_targets(self):
+    def get_running_targets(self,target_id=None):
         allscans=self.get_all_scan()
         targets=[]
+        address={}
         if allscans:
             for result in allscans:
-                targets.append(result['target']['address'])
-                print(result['scan_id'], result['target']['address'], self.get_scan_status(result['scan_id']))
-        return list(set(targets))
+
+                if target_id and result['target_id']!=target_id:
+                    continue
+                target = {}
+                target['target_id']=result['target_id']
+                target['address']=result['target']['address']
+                scanStauts=result['current_session']['status']
+                #'2017-11-06T19:01:04.451387+08:00'
+                start_time=datetime.datetime.strptime(result['current_session']['start_date'],'%Y-%m-%dT%H:%M:%S.%f+08:00')
+                start_time=start_time.timestamp()
+                threat=result['current_session']['threat']
+                target['status']=scanStauts
+                target['start_time']=start_time
+                target['threat']=threat
+                target['scan_id']=result['scan_id']
+                targets.append(target)
+                if result['target']['address'] not in address:
+                    address[result['target']['address']]=[]
+                address[result['target']['address']].append(scanStauts)
+
+                print("[*]已存在的扫描目标：ScanID={0}, TargetAddress={1}, ScanStatus={2}".format(result['scan_id'], result['target']['address'], scanStauts))
+        return address,targets
 
     def get_scan_status(self,scan_id):
         # 获取scan_id的扫描状况
@@ -213,7 +246,6 @@ if __name__ == '__main__':
     testTarget="http://testhtml5.vulnweb.com/"
     awvs=AwvsApiV11(api_key="1986ad8c0a5b3df4d7028d5f3c06e936ce3cf93e80a70434691e18edb1fd7c86f",
                     api_base_url="https://192.168.3.56:3443/")
-    awvs.test()
     # target_id=awvs.add_target(testTarget,"测试目标")
     # if target_id:
     #     print("[*]成功添加目标[{0}],target_id={1}".format(testTarget,target_id))
@@ -222,8 +254,8 @@ if __name__ == '__main__':
     if scan_id:
         print(scan_id)
 
-    scan_id="4d52815e-59df-4fd7-9914-3ccb6428bc59"
-    runnings=awvs.get_running_targets()
-    status=awvs.get_scan_status(scan_id)
-    report=awvs.get_reports(scan_id)
-    print(report)
+    # scan_id="4d52815e-59df-4fd7-9914-3ccb6428bc59"
+    # runnings=awvs.get_running_targets()
+    # status=awvs.get_scan_status(scan_id)
+    # report=awvs.get_reports(scan_id)
+    # print(report)

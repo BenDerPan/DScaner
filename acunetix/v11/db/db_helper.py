@@ -1,6 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
-from acunetix.v11.db.tables.targets import TargetsTable
+import datetime
+from acunetix.v11.db.tables.targets import TargetsTable,TargetRow
 from acunetix.v11.db.tables.target_vulns import TargetVulnsTable,TargetVulnRow
 from acunetix.v11.db.tables.vuln_types import VulnTypesTable,VulnTypeRow
 from config import *
@@ -28,17 +29,27 @@ class DBHelper:
     def get_targets(self):
         targets=None
         try:
-            targets=self.session.query(TargetsTable)
+            targets=self.session.query(TargetsTable).all()
         except Exception as e:
             print('[!]获取目标列表失败：{}'.format(e))
             targets=None
         finally:
             return targets
 
+    def get_target(self,target_url):
+        target = None
+        try:
+            target = self.session.query(TargetsTable).filter(TargetRow.address==target_url).first()
+        except Exception as e:
+            print('[!]获取目标列表失败：{}'.format(e))
+            target = None
+        finally:
+            return target
+
     def get_target_vulns(self,target_id):
         vulns = None
         try:
-            vulns = self.session.query(TargetVulnsTable).filter(TargetVulnRow.target_id==target_id)
+            vulns = self.session.query(TargetVulnsTable).filter(TargetVulnRow.target_id==target_id).all()
         except Exception as e:
             print('[!]获取目标漏洞列表列表失败：{}'.format(e))
             vulns = None
@@ -48,12 +59,54 @@ class DBHelper:
     def get_vuln_type(self,vt_id):
         vulns_type = None
         try:
-            vulns_type = self.session.query(VulnTypesTable).filter(VulnTypeRow.vt_id==vt_id)
+            vulns_type = self.session.query(VulnTypesTable).filter(VulnTypeRow.vt_id==vt_id).first()
         except Exception as e:
             print('[!]获取漏洞详情信息失败：{}'.format(e))
             vulns_type = None
         finally:
             return vulns_type
+
+    def get_timestamp(self,timeObj):
+        if isinstance(timeObj,datetime.datetime):
+            return timeObj.timestamp()
+        return None
+
+    def get_target_vuln_with_details(self,target_id):
+        vulnsData = {}
+        vulnsData['details'] = []
+        vulns=self.get_target_vulns(target_id)
+
+        for v in vulns:
+            vuln={}
+            #datetime
+            vuln['first_seen']=self.get_timestamp(v.first_seen)
+            vuln['details']=v.details
+            vuln['details_type']=v.details_type
+            vuln['last_seen']=self.get_timestamp(v.last_seen)
+            vuln['loc_detail']=v.loc_detail
+            vuln['name']=v.name
+            vuln['attack_vector']=v.attack_vector
+            vuln['continuous']=v.continuous
+            vuln['criticality']=v.criticality
+            vuln['deleted_at']=self.get_timestamp(v.deleted_at)
+            vuln['fixed_at']=self.get_timestamp(v.fixed_at)
+            vuln['issue_id']=v.issue_id
+            vuln['issue_tracker_id']=v.issue_tracker_id
+            vuln['rediscovered']=v.rediscovered
+            vuln['request']=v.request
+            vuln['request_port']=v.request_port
+            vuln['request_secure']=v.request_secure
+            vuln['sensor_details']=v.sensor_details
+            vuln['severity']=v.severity
+            vuln['source']=v.source
+            vuln['status']=v.status
+            vuln['tags']=v.tags
+            vuln['url']=v.url
+            vuln['use_ssl']=v.use_ssl
+            vuln['vuln_hash']=v.vuln_hash
+            vulnsData['details'].append(vuln)
+
+        return vulnsData
 
 
 if __name__ == '__main__':
